@@ -1,0 +1,167 @@
+5. Application and session object
+
+Application state:
+Global.asax file
+<%@ Application Language="C#" %>
+
+<script runat="server">
+
+    void Application_Start(object sender, EventArgs e)
+    {
+        // Code that runs on application startup
+        Application["User"] = 0;
+
+    }
+
+    void Application_End(object sender, EventArgs e)
+    {
+        //  Code that runs on application shutdown
+
+    }
+
+    void Application_Error(object sender, EventArgs e)
+    {
+        // Code that runs when an unhandled error occurs
+
+    }
+
+    void Session_Start(object sender, EventArgs e)
+    {
+        // Code that runs when a new session is started
+        Application["User"] = (int)Application["User"] + 1;
+
+    }
+
+    void Session_End(object sender, EventArgs e)
+    {
+        // Code that runs when a session ends. 
+        // Note: The Session_End event is raised only when the sessionstate mode
+        // is set to InProc in the Web.config file. If session mode is set to StateServer 
+        // or SQLServer, the event is not raised.
+
+    }
+
+</script>
+
+Default.aspx.cs file
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+
+public partial class _Default : System.Web.UI.Page
+{
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        int User = (int)Application["User"];
+        Label1.Text = "No of visitors : " + User.ToString();
+    }
+}
+
+Session State:
+Login.aspx.cs file
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+
+public partial class login : System.Web.UI.Page
+{
+    protected void Page_Load(object sender, EventArgs e)
+    {
+
+    }
+
+    protected void Login1_Authenticate(object sender, AuthenticateEventArgs e)
+    {
+        if(Login1.UserName=="admin"&& Login1.Password=="admin")
+        {
+            Session["uname"] = Login1.UserName;
+            Response.Redirect("Home.aspx");
+        }
+        else
+        {
+            Response.Write("Invalid username and password");
+        }
+    }
+
+   
+}
+Home.aspx.cs file
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+
+public partial class Home : System.Web.UI.Page
+{
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        if(Session["uname"]==null)
+        {
+            Response.Redirect("Login.aspx");
+        }
+        Label1.Text = "Welcome " + (string)Session["uname"];
+    }
+
+    protected void Button1_Click(object sender, EventArgs e)
+    {
+        Session["uname"] = null;
+        Response.Redirect("Login.aspx");
+    }
+}
+
+6.Cache 
+Default.aspx.cs file
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Data;
+using System.Data.SqlClient;
+using System.Configuration;
+using System.Web.Caching;
+using System.Web.UI.WebControls;
+
+public partial class cache : System.Web.UI.Page
+{
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        if((!IsPostBack) && (Cache["mydataset"]==null))
+        {
+            int a = System.DateTime.Now.Millisecond;
+            string connectionstring = @"Data Source=192.169.1.218\SQL2016 ; Initial Catalog= ASDS ; User Id = sa ; Password = welcome3#";
+            SqlConnection con = new SqlConnection(connectionstring);
+            SqlCommand cmd = new SqlCommand("select * from students", con);
+            SqlDataAdapter da = new SqlDataAdapter(cmd);
+            DataSet ds = new DataSet();
+            da.Fill(ds);
+            Cache["mydataset"] = ds;
+            Cache.Insert("mydataset", ds, null, DateTime.Now.AddMinutes(10), TimeSpan.Zero);
+            Label1.Text = "from database";
+            GridView1.DataSource = ds.Tables[0];
+            GridView1.DataBind();
+            int b = System.DateTime.Now.Millisecond;
+            Response.Write(b - a);
+
+        }
+        else
+        {
+            int a = System.DateTime.Now.Millisecond;
+            DataSet ds = new DataSet();
+            ds = (DataSet)Cache["mydataset"];
+            Label1.Text = "from cache";
+            GridView1.DataSource = ds.Tables[0];
+            GridView1.DataBind();
+            int b = System.DateTime.Now.Millisecond;
+            Response.Write(b - a);
+        }
+    }
+}
